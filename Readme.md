@@ -20,6 +20,7 @@ This module lets you connect to web services using SOAP.  It also provides a ser
   - [Options](#options)
   - [Server Logging](#server-logging)
   - [Server Events](#server-events)
+  - [Server Response on one-way calls](#server-response-on-one-way-calls)
   - [SOAP Fault](#soap-fault)
   - [Server security example using PasswordDigest](#server-security-example-using-passworddigest)
   - [Server connection authorization](#server-connection-authorization)
@@ -38,7 +39,7 @@ This module lets you connect to web services using SOAP.  It also provides a ser
   - [Client Events](#client-events)
     - [request](#request)
     - [message](#message)
-    - [soapError](#soapError)
+    - [soapError](#soaperror)
     - [response](#response)
 - [Security](#security)
   - [BasicAuthSecurity](#basicauthsecurity)
@@ -210,13 +211,13 @@ You can pass in server and [WSDL Options](#handling-xml-attributes-value-and-xml
 using an options hash.
 
 Server options include the below:
-`pfx`: A string or Buffer containing the private key, certificate and CA certs of the server in PFX or PKCS12 format. (Mutually exclusive with the key, cert and ca options.)
-`key`: A string or Buffer containing the private key of the server in PEM format. (Could be an array of keys). (Required)
-`passphrase`: A string of passphrase for the private key or pfx.
-`cert`: A string or Buffer containing the certificate key of the server in PEM format. (Could be an array of certs). (Required)
-`ca`: An array of strings or Buffers of trusted certificates in PEM format. If this is omitted several well known "root" CAs will be used, like VeriSign. These are used to authorize connections.
-`crl` : Either a string or list of strings of PEM encoded CRLs (Certificate Revocation List)
-`ciphers`: A string describing the ciphers to use or exclude, separated by  :. The default cipher suite is:
+- `pfx`: A string or Buffer containing the private key, certificate and CA certs of the server in PFX or PKCS12 format. (Mutually exclusive with the key, cert and ca options.)
+- `key`: A string or Buffer containing the private key of the server in PEM format. (Could be an array of keys). (Required)
+- `passphrase`: A string of passphrase for the private key or pfx.
+- `cert`: A string or Buffer containing the certificate key of the server in PEM format. (Could be an array of certs). (Required)
+- `ca`: An array of strings or Buffers of trusted certificates in PEM format. If this is omitted several well known "root" CAs will be used, like VeriSign. These are used to authorize connections.
+- `crl` : Either a string or list of strings of PEM encoded CRLs (Certificate Revocation List)
+- `ciphers`: A string describing the ciphers to use or exclude, separated by  :. The default cipher suite is:
 
 ``` javascript
 var xml = require('fs').readFileSync('myservice.wsdl', 'utf8');
@@ -257,6 +258,16 @@ Server instances emit the following events:
 
 The sequence order of the calls is `request`, `headers` and then the dedicated
 service method.
+
+### Server Response on one-way calls
+
+The so called one-way (or asynchronous) calls occur when an operation is called with no output defined in WSDL.
+The server sends a response (defaults to status code 200 with no body) to the client disregarding the result of the operation.
+
+You can configure the response to match the appropriate client expectation to the SOAP standard implementation.
+Pass in `oneWay` object in server options. Use the following keys:
+`emptyBody`: if true, returns an empty body, otherwise no content at all (default is false)
+`responseCode`: default statusCode is 200, override it with this options (for example 202 for SAP standard compliant response)
 
 ### SOAP Fault
 
@@ -678,7 +689,7 @@ as default request options to the constructor:
 If you want to reuse tls sessions, you can use the option `forever: true`. 
 
 ``` javascript
-client.setSecurity(new soap.ClientSSLSecurity(
+client.setSecurity(new soap.ClientSSLSecurityPFX(
                 '/path/to/pfx/cert', // or a buffer: [fs.readFileSync('/path/to/pfx/cert', 'utf8'),
                 'path/to/optional/passphrase',
                 {   /*default request options like */
@@ -879,7 +890,7 @@ Example :
 ```javascript
 
    var wsdlOptions = {
-     customDeserializer = {
+     customDeserializer: {
 
        // this function will be used to any date found in soap responses
        date: function (text, context) {
